@@ -31,6 +31,7 @@
 #' @param envGradEst a character string, indicating how the environmental gradient should be fitted. "LR" using the likelihood-ratio criterion, or "ML" a full maximum likelihood solution
 #' @param dfSpline a scalar, the number of degrees of freedom for the splines of the non-parametric response function, see VGAM::s()
 #' @param vgamMaxit an integer, the maximum number of iteration in the vgam() function
+#' @param degree an integer, the degree of the polynomial fit if the spline fit fails
 #'
 #' #'@seealso \code{\link{RCM}}
 #'
@@ -62,7 +63,11 @@
 #' \item{confounders}{(if provided) the confounder matrix}
 #' \item{confParams}{ the parameters used to filter out the confounders}
 #' \item{nonParamRespFun}{A list of the non parametric response functions}
+#' \item{degree}{The degree of the alternative parametric fit}
+#' \item{devFilt}{The deviance after filtering confounders}
+#' \item{llFilt}{The likelihood of the model after filtering on confounders}
 #' @export
+#' @note Plotting is not supported for quadratic response functions
 #' @examples
 #' data(Zeller)
 #' require(phyloseq)
@@ -72,7 +77,7 @@
 #' mat = mat[rowSums(mat)>0, colSums(mat)>0]
 #' zellerRCM = RCM_NB(mat, k = 2)
 #' #Needs to be called directly onto a matrix
-RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1e-3, maxItOut = 500L, Psitol = 1e-3, verbose = FALSE, NBRCM = NULL, global = "dbldog", nleqslv.control = list(maxit = 500L, cndtol = 1-16), jacMethod = "Broyden", dispFreq = 20L, convNorm = 2, prior.df=10, marginEst = "MLE", confounders = NULL, prevCutOff = 2.5e-2, minFraction = 0.1, covariates = NULL, centMat = NULL, responseFun = c("linear", "quadratic","dynamic","nonparametric"), record = FALSE, control.outer = list(trace=FALSE), control.optim = list(), envGradEst = "LR", dfSpline = 3, vgamMaxit = 100L){
+RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1e-3, maxItOut = 1000L, Psitol = 1e-2, verbose = FALSE, NBRCM = NULL, global = "dbldog", nleqslv.control = list(maxit = 500L, cndtol = 1-16), jacMethod = "Broyden", dispFreq = 10L, convNorm = 2, prior.df=10, marginEst = "MLE", confounders = NULL, prevCutOff = 2.5e-2, minFraction = 0.1, covariates = NULL, centMat = NULL, responseFun = c("linear", "quadratic","dynamic","nonparametric"), record = FALSE, control.outer = list(trace=FALSE), control.optim = list(), envGradEst = "LR", dfSpline = 3, vgamMaxit = 100L, degree = switch(responseFun[1], "nonparametric" = 1, NULL)){
 
   Xorig = NULL #An original matrix, not returned if no trimming occurs
   responseFun = responseFun[1]
@@ -214,7 +219,7 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
 
       initIter = 1
 
-      if(verbose) cat("Estimating the independence model \n")
+      if(verbose) cat("\nEstimating the independence model \n\n")
 
       while((initIter ==1) || ((initIter <= maxItOut) && (!convergenceInit))){
         logLibsOld = logLibSizesMLE
@@ -268,8 +273,10 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
       muMarg = filtObj$muMarg
       thetas[,1] = filtObj$thetas
       confParams = filtObj$NB_params
+      devFilt = getDevMat(X = X, thetaMat = matrix(filtObj$thetas, nrow = n, ncol = p, byrow = TRUE), mu = muMarg)#The deviance after filtering the confounders
+      llFilt = dnbinom(x = X, mu = muMarg, size = matrix(filtObj$thetas, nrow = n, ncol = p, byrow = TRUE), log = TRUE) #The likelihood after filtering the confounders
     } else {
-      confParams=NULL
+      confParams = devFilt = llFilt = NULL
     }
     ## 1) Initialization
     svdX = svd(diag(1/libSizes) %*% (X-muMarg) %*% diag(1/colSums(X)))
@@ -357,7 +364,11 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
         if (verbose) cat("\n Estimating psis \n")
         regPsis = outer(rMat[,KK] ,cMat[KK,])
 
-        psis[KK]  = abs(nleqslv(fn = dNBpsis, x = psis[KK], theta = thetasMat, X = X, reg=regPsis, muMarg=muMarg, global=global, control = nleqslv.control, jac=NBjacobianPsi, method=jacMethod, preFabMat = preFabMat)$x)
+        psiTry = try(abs(nleqslv(fn = dNBpsis, x = psis[KK], theta = thetasMat, X = X, reg=regPsis, muMarg=muMarg, global=global, control = nleqslv.control, jac=NBjacobianPsi, method=jacMethod, preFabMat = preFabMat)$x))
+        if(class(psiTry)=="try-error"){
+          stop("Fit failed, likely due to numeric reasons. Consider more stringent filtering by increasing the prevCutOff parameter.\n")
+          } else {psis[KK] = psiTry}
+
         #Column scores
         if (verbose) cat("\n Estimating column scores \n")
         regCol = rMat[,KK, drop=FALSE]*psis[KK]
@@ -397,8 +408,8 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
         ##Check convergence  (any numbered norm for row and column scores)
         convergence[KK] = ((iterOut[KK] <= maxItOut) &&
                              (abs(1-psis[KK]/psisOld) < Psitol) && #Infinity norm for the psis
-                             ((sum(abs(1-rMat[,KK]/rMatOld)^convNorm)/n)^(1/convNorm) < tol) &&
-                             ((sum(abs(1-cMat[KK,]/cMatOld)^convNorm)/p)^(1/convNorm) < tol) )
+                             ((mean(abs(1-rMat[,KK]/rMatOld)^convNorm))^(1/convNorm) < tol) &&
+                             ((mean(abs(1-cMat[KK,]/cMatOld)^convNorm))^(1/convNorm) < tol) )
       } # END while-loop until convergence
 
     }# END for-loop over dimensions
@@ -411,11 +422,15 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
 
     returnList = list(converged = convergence, rMat = rMat, cMat=cMat, psis = psis, thetas = thetas,  rowRec = rowRec, colRec = colRec, psiRec = psiRec, thetaRec = thetaRec, iter = iterOut-1, X=X, Xorig = Xorig, fit = "RCM_NB", lambdaRow = lambdaRow, lambdaCol = lambdaCol, rowWeights = rowWeights, colWeights = colWeights,
                       libSizes = switch(marginEst, "MLE" = exp(logLibSizesMLE), "marginSums" = libSizes), abunds = switch(marginEst, "MLE" = exp(logAbundsMLE), "marginSums" = abunds),
-                      confounders = confounders, confParams = confParams)
+                      confounders = confounders, confParams = confParams, devFilt = devFilt, llFilt = llFilt)
 
   } else { #If covariates provided, do a constrained analysis
     d = ncol(covariates)
     CCA = vegan::cca(X = X, Y = covariates)$CCA #Constrained correspondence analysis for starting values
+    if(sum(!colnames(covariates) %in% CCA$alias)<k) {
+      k = sum(!colnames(covariates) %in% CCA$alias)
+      warning(immediate. = TRUE, paste("Can only fit an ordination with", k,"dimensions with so few covariates!"))
+    }
     alpha = matrix(0,d,k)
     alpha[!colnames(covariates) %in% CCA$alias,] = CCA$biplot[,1:k] #Leave the sum constraints for the factors alone for now, may or may not speed up the algorithm
     alpha = t(t(alpha)-colMeans(alpha))
@@ -454,7 +469,7 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
         muMarg = if(responseFun %in% c("linear","quadratic", "dynamic")){
           exp(getRowMat(responseFun = responseFun, sampleScore = covariates %*% alpha[,KK-1, drop = FALSE], NB_params = NB_params[,,KK-1])*psis[KK-1])*muMarg
         } else {
-          nonParamRespFun[[KK-1]]$taxonWiseFitted
+          exp(nonParamRespFun[[KK-1]]$rowMat*psis[KK-1]) * muMarg#nonParamRespFun[[KK-1]]$taxonWiseFitted
         }
       }
 
@@ -510,12 +525,15 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
 
         } else {
           if (verbose) cat("\n Estimating response functions \n")
-          nonParamRespFun[[KK]] = estNPresp(sampleScore = sampleScore, muMarg = muMarg, X = X, ncols = p, thetas = thetas[,KK+1], n=n, coefInit = nonParamRespFun[[KK]]$taxonCoef, coefInitOverall = nonParamRespFun[[KK]]$overallCoef, vgamMaxit = vgamMaxit, dfSpline = dfSpline, colWeights = colWeights, verbose = verbose)
+          nonParamRespFun[[KK]] = estNPresp(sampleScore = sampleScore, muMarg = muMarg, X = X, psi = psis[KK], ncols = p, thetas = thetas[,KK+1], n=n, coefInit = nonParamRespFun[[KK]]$taxonCoef, coefInitOverall = nonParamRespFun[[KK]]$overallCoef, vgamMaxit = vgamMaxit, dfSpline = dfSpline, verbose = verbose, degree = degree)
+
           if (verbose) cat("\n Estimating environmental gradient \n")
-          AlphaTmp = constrOptim.nl(par = alpha[,KK], fn = LR_nb, gr = NULL, heq = heq_nb, heq.jac = heq_nb_jac, alphaK = alpha[, seq_len(KK-1), drop=FALSE], X=X, CC=covariates, responseFun = responseFun, muMarg = muMarg, d = d, ncols=p, control.outer = control.outer, control.optim = control.optim, nleqslv.control = nleqslv.control, k = KK, centMat = centMat, n=n, nonParamRespFun = nonParamRespFun[[KK]], thetaMat = thetasMat, envGradEst = envGradEst)
+          AlphaTmp = constrOptim.nl(par = alpha[,KK], fn = LR_nb, gr = NULL, heq = heq_nb, heq.jac = heq_nb_jac, alphaK = alpha[, seq_len(KK-1), drop=FALSE], X=X, CC=covariates, responseFun = responseFun, muMarg = muMarg, d = d, ncols=p, control.outer = control.outer, control.optim = control.optim, nleqslv.control = nleqslv.control, k = KK, centMat = centMat, n=n, nonParamRespFun = nonParamRespFun[[KK]], thetaMat = thetasMat, envGradEst = envGradEst, psi = psis[KK])
           alpha[,KK] = AlphaTmp$par
           lambdasAlpha[seq_k(KK, nLambda1s)] = AlphaTmp$lambda
-          psis[KK] = nonParamRespFun[[KK]]$psi #Get the psis based on the integrals
+          #Psis
+          if (verbose) cat("\n Estimating psis (k = ", KK, ") \n", sep="")
+          psis[KK] = abs(nleqslv(fn = dNBpsis, x = psis[KK], theta = thetasMat , X = X, reg = nonParamRespFun[[KK]]$rowMat, muMarg = muMarg, global = global, control = nleqslv.control, jac = NBjacobianPsi, method = jacMethod, preFabMat = preFabMat)$x)#nonParamRespFun[[KK]]$psi #Get the psis based on the integrals
         }
 
         #Store intermediate estimates
@@ -530,7 +548,7 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
         ##Check convergence  (any numbered norm for row and column scores)
         convergence[KK] = ((iterOut[KK] <= maxItOut) &&
                              (abs(1-psis[KK]/psisOld) < Psitol) && #Infinity norm for the psis
-                             ((sum(abs(1-alpha[,KK]/alphaOld)^convNorm)/p)^(1/convNorm) < tol) && #Env gradient
+                             ((mean(abs(1-alpha[,KK]/alphaOld)^convNorm))^(1/convNorm) < tol) && #Env gradient
                              if(responseFun=="nonparametric") TRUE else (mean(abs(1-(NB_params[,,KK]/NBparamsOld)[NBparamsOld*NB_params[,,KK] != 0])^convNorm)^(1/convNorm) < tol) #Parameters of the response function
         )
       } # END while-loop until convergence
@@ -539,13 +557,12 @@ RCM_NB = function(X, k, rowWeights = "uniform", colWeights = "marginal", tol = 1
     ## 3) Termination
 
     rownames(alpha) = colnames(covariates)
-    colnames(cMat) = colnames(X)
-    rownames(cMat) = colnames(alpha) = paste0("Dim",1:k)
+    colnames(alpha) = paste0("Dim",1:k)
 
-    returnList = list(converged = convergence, psis = psis, thetas = thetas, psiRec = psiRec, thetaRec = thetaRec, iter = iterOut-1, X = X, Xorig = Xorig, fit = "RCM_NB_constr", lambdaCol = lambdaCol, rowWeights = rowWeights, colWeights = colWeights, alpha = alpha, alphaRec = alphaRec, covariates = covariates, NB_params = NB_params, NB_params_noLab = NB_params_noLab, libSizes = switch(marginEst, "MLE" = exp(logLibSizesMLE), "marginSums" = libSizes), abunds = switch(marginEst, "MLE" = exp(logAbundsMLE), "marginSums" = abunds), confounders = confounders, confParams = confParams, responseFun = responseFun, nonParamRespFun = nonParamRespFun, envGradEst = if(is.null(covariates)) NULL else envGradEst, lambdasAlpha = lambdasAlpha)
+    returnList = list(converged = convergence, psis = psis, thetas = thetas, psiRec = psiRec, thetaRec = thetaRec, iter = iterOut-1, X = X, Xorig = Xorig, fit = "RCM_NB_constr", lambdaCol = lambdaCol, rowWeights = rowWeights, colWeights = colWeights, alpha = alpha, alphaRec = alphaRec, covariates = covariates, NB_params = NB_params, NB_params_noLab = NB_params_noLab, libSizes = switch(marginEst, "MLE" = exp(logLibSizesMLE), "marginSums" = libSizes), abunds = switch(marginEst, "MLE" = exp(logAbundsMLE), "marginSums" = abunds), confounders = confounders, confParams = confParams, responseFun = responseFun, nonParamRespFun = nonParamRespFun, envGradEst = if(is.null(covariates)) NULL else envGradEst, lambdasAlpha = lambdasAlpha, degree = degree, devFilt = devFilt, llFilt = llFilt)
   }
   if(!all(convergence)){
-    warning("Algorithm did not converge for all dimensions! Check for errors or consider changing tolerances or number of iterations")
+    warning(paste0("Algorithm did not converge for dimensions ", paste(which(!convergence), collapse = ","), "! Check for errors or consider changing tolerances or number of iterations"))
   }
   return(returnList)
 }

@@ -18,24 +18,25 @@
 #' @param samShape a character string, the variable to use for the shape of the sample dots
 #' @param shapeLegend a character string, the text to use for the shapeLegend. Defaults to the name of the shape variable
 #' @param samSize a scalar, the size of the sample dots
-#' @param scalingFactor a scalar, a user supplied scaling factor for the taxon arrows If not supplied it will be calculated to make sample and taxon plots on the same scale
+#' @param scalingFactor a scalar, a user supplied scaling factor for the taxon arrows. If not supplied it will be calculated to make sample and taxon plots on the same scale
 #' @param quadDrop a number between 0 and 1. At this fraction of the peak height are the ellipses of the quadratic response functions drawn
 #' @param plotEllipse a boolean, whether to add the ellipses
 #' @param taxaScale a scalar, by which to scale the rectangles of the quadratic taxon plot
 #' @param Palette the colour palette
-#' @param taxLabels a boolean, should taxon labels be plotted
+#' @param taxLabels a boolean, should taxon labels be plotted?
 #' @param taxDots a boolean, should taxa be plotted as dots?
 #' @param taxCol the taxon colour
 #' @param taxColSingle the taxon colour if there is only one
 #' @param nudge_y a scalar, the offet for the taxon labels
-#' @param square A boolean, should the plot be square? This is highly preferred to honestly represent differences
+#' @param axesFixed A boolean, should the aspect ratio of the plot (the scale between the x and y-axis) be fixed. It is highly recommended to keep this argument at TRUE  for honest representation of the ordination. If set to FALSE, the plotting space will be optimally used but the plot may be deformed in the process.
+#' @param aspRatio The aspect ratio of the plot when 'axesfixed' is TRUE (otherwise this argument is ignored), passde on to ggplot2::coord_fixed(). It is highly recommended to keep this argument at 1 for honest representation of the ordination.
 #' @param xInd a scalar or a vector of length 2, specifying the indentation left and right of the plot to allow for the labels to be printed entirely. Defaults to 0.75 at every side
 #' @param yInd a scalar or a vector of length 2, specifying the indentation top and bottom of the plot to allow for the labels to be printed entirely. Defaults to 0 at every side
 #' @param taxLabSize the size of taxon labels
 #' @param varLabSize the size of the variable label
 #' @param alphaRange The range of transparency
 #' @param varExpFactor a scalar, the factor by which to expand the variable coordinates
-#' @param manExpFactorTaxa a manual expansion factor for the taxa Setting it to a high value allows you to plot the taxa around the samples
+#' @param manExpFactorTaxa a manual expansion factor for the taxa. Setting it to a high value allows you to plot the taxa around the samples
 #' @param nPhyl an integer, number of phylogenetic levels to show
 #' @param phylOther a character vector of phylogenetic levels to be included in the "other" group
 #' @param legendSize a size for the coloured dots in the legend
@@ -72,7 +73,7 @@
 #' zellerRCM = RCM(tmpPhy)
 #' plot(zellerRCM)
 plot.RCM = function(x, ..., Dim = c(1,2), plotType = c("samples","species","variables"),
-                    samColour = NULL, taxNum = if(all(plotType=="species") || !is.null(taxRegExp)) {ncol(x$X)} else {10}, taxRegExp = NULL, varNum = 15, arrowSize = 0.25, Influence = FALSE, inflDim = 1, returnCoords = FALSE, alpha = TRUE, varPlot = NULL, colLegend = if(Influence) paste0("Influence on\n", samColour, "\nparameter \nin dimension",inflDim) else samColour, samShape = NULL, shapeLegend = samShape, samSize = 1.5, scalingFactor = NULL, quadDrop = 0.995, plotEllipse = TRUE, taxaScale = 0.5, Palette = if(!all(plotType=="species")) "Set1" else "Paired", taxLabels = !all(plotType=="species"), taxDots = FALSE, taxCol = "blue", taxColSingle = "blue", nudge_y = -0.08, square = TRUE, xInd = if(all(plotType=="samples")) c(0,0) else c(-0.75, 0.75), yInd = c(0,0), taxLabSize = 2, varLabSize = 2, alphaRange = c(0.2,1), varExpFactor = 10, manExpFactorTaxa = 0.975, nPhyl = 10, phylOther = c(""), legendSize = samSize, noLegend = is.null(samColour), crossSize = 4, contCol = c("orange","darkgreen"), legendLabSize = 15,  legendTitleSize = 16, axisLabSize = 14, axisTitleSize = 16, plotPsi = TRUE, breakChar = "\n") {
+                    samColour = NULL, taxNum = if(all(plotType=="species") || !is.null(taxRegExp)) {ncol(x$X)} else {10}, taxRegExp = NULL, varNum = 15, arrowSize = 0.25, Influence = FALSE, inflDim = 1, returnCoords = FALSE, alpha = TRUE, varPlot = NULL, colLegend = if(Influence) paste0("Influence on\n", samColour, "\nparameter \nin dimension",inflDim) else samColour, samShape = NULL, shapeLegend = samShape, samSize = 2, scalingFactor = NULL, quadDrop = 0.995, plotEllipse = TRUE, taxaScale = 0.5, Palette = if(!all(plotType=="species")) "Set1" else "Paired", taxLabels = !all(plotType=="species"), taxDots = FALSE, taxCol = "blue", taxColSingle = "blue", nudge_y = 0.08, axesFixed = TRUE, aspRatio = 1, xInd = if(all(plotType=="samples")) c(0,0) else c(-0.75, 0.75), yInd = c(0,0), taxLabSize = 4, varLabSize = 3.5, alphaRange = c(0.2,1), varExpFactor = 10, manExpFactorTaxa = 0.975, nPhyl = 10, phylOther = c(""), legendSize = samSize, noLegend = is.null(samColour), crossSize = 4, contCol = c("orange","darkgreen"), legendLabSize = 15,  legendTitleSize = 16, axisLabSize = 14, axisTitleSize = 16, plotPsi = TRUE, breakChar = "\n") {
   #Retrieve dots (will be passed on to aes())
   dotList = list(...)
   richSupported = c("Observed", "Chao1", "ACE", "Shannon", "Simpson","InvSimpson", "Fisher")
@@ -86,7 +87,7 @@ plot.RCM = function(x, ..., Dim = c(1,2), plotType = c("samples","species","vari
    dataSam = coords$samples
   #Get the sample colours
   if(length(samColour)==1){
-    dataSam$colourPlot = if(Influence) rowSums(NBalphaInfl(x, inflDim)[,,samColour]) else if(samColour == "Deviance") rowSums(getDevianceRes(x, Dim)^2) else if(samColour %in% richSupported) estimate_richness(x$physeq, measures = samColour) else get_variable(x$physeq, samColour)
+    dataSam$colourPlot = if(Influence) rowSums(NBalphaInfl(x, inflDim)[,,samColour]) else if(samColour == "Deviance") rowSums(getDevianceRes(x, Dim)^2) else if(samColour %in% richSupported) estimate_richness(x$physeq, measures = samColour)[[1]] else get_variable(x$physeq, samColour)
   } else if(!is.null(samColour)){
     dataSam$colourPlot = samColour
   } else {dataSam$colourPlot = factor(rep(1, nrow(dataSam)))}
@@ -236,7 +237,8 @@ if(!"samples" %in% plotType && length(taxCol)==1) colLegend = taxCol
       plot = plot + scale_fill_continuous(name = colLegend)
     }
 if(taxLabels){
-    plot <- plot +  if(is.null(dataTax$taxCol)){geom_text(data=dataTax, aes_string(x="end1", y = "end2", label = "labels", color = "taxCol"), color =  taxColSingle, show.legend=FALSE, nudge_y = nudge_y, size = taxLabSize, inherit.aes = FALSE)
+  dataTax$end2b = dataTax$end2+nudge_y*ifelse(dataTax$end2>0,1,-1)
+    plot <- plot +  if(is.null(dataTax$taxCol)){geom_text(data=dataTax, aes_string(x="end1", y = "end2b", label = "labels", color = "taxCol"), color =  taxColSingle, show.legend=FALSE, size = taxLabSize, inherit.aes = FALSE)
     } else {
       geom_text(data=dataTax, aes_string(x="end1", y = "end2", label = "labels", color = "taxCol"), show.legend=TRUE, nudge_y = nudge_y, size = taxLabSize, inherit.aes = FALSE)
     }
@@ -285,8 +287,11 @@ if(taxLabels){
   # Enlarge most text
   plot = plot + theme_bw() + theme(axis.title = element_text(size = axisTitleSize), axis.text = element_text(size = axisLabSize), legend.title = element_text(size = legendTitleSize), legend.text = element_text(size = legendLabSize), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
+  # Fix coordinates at a certain aspect ratio if required, and throw warning if not
+  if(axesFixed) plot = plot + coord_fixed(ratio = aspRatio)
+  if(!(axesFixed & (aspRatio==1))) warning("Axes not squared, plot may be deformed!\nConsider setting aspRatio = 1 and axesFixed = TRUE.")
   #Expand limits to show all text
-  plot = if(square) squarePlot(plot, xInd = xInd, yInd = yInd) else plot
+  plot = indentPlot(plot, xInd = xInd, yInd = yInd)
   if(returnCoords){
   list(plot = plot, samples = dataSam, species = dataTax, variables  = varData)
   } else {plot}

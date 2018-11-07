@@ -4,17 +4,17 @@
 \alias{liks}
 \title{Calculate the log-likelihoods of the indepence and saturated models and all fitted submodels}
 \usage{
-liks(rcm, Sum = FALSE)
+liks(rcm, Sum = TRUE)
 }
 \arguments{
 \item{rcm}{an object of the RCM class}
 
-\item{Sum}{a boolean, should likelihoods be summed?
+\item{Sum}{a boolean, should log-likelihoods be summed?
 
 Dispersions are re-estimated for every dimension of the model.}
 }
 \value{
-a named array log-likelihoods of the independence model and all models with dimension 1 to k, or a vector with summed log-likelihoods
+If Sum is FALSE, a named array log-likelihoods of the independence model and all models with dimension 1 to k, including after filtering on confounders. Otherwise a table with log-likelihoods, deviance explained and cumulative deviance explained.
 }
 \description{
 Calculate the log-likelihoods of the indepence and saturated models and all fitted submodels

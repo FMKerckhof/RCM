@@ -5,7 +5,7 @@ Manual for the use of the RCM functions
 Install and load packages
 -------------------------
 
-This repo contains R-code to fit and plot the RC(M)-models augmented with the negative binomial. The basic usage is demonstrated here, for more advanced examples see the [RCM manual](http://http://users.ugent.be/~shawinke/RCMmanual) and the help pages of *RCM()*, *RCM\_NB()*, and *plot.RCM*.
+This repo contains R-code to fit and plot the RC(M)-models augmented with the negative binomial. The basic usage is demonstrated here, for more advanced examples see the [RCM manual](http://users.ugent.be/~shawinke/RCMmanual) and the help pages of *RCM()*, *RCM\_NB()*, and *plot.RCM()* functions.
 
 The package can be installed and loaded using the following commands:
 
@@ -19,7 +19,7 @@ library(RCM)
 cat("RCM package version", as.character(packageVersion("RCM")), "\n")
 ```
 
-    ## RCM package version 0.1.0
+    ## RCM package version 0.2.0
 
 Dataset
 -------
@@ -31,7 +31,7 @@ library(phyloseq)
 data(Zeller)
 ```
 
-The *Zeller* object is a phyloseq object, which contains all the information of a microbiome experiment. The *RCM* package is tailor-made for phyloseq objects. We therefore strongly recommend biulding a phyloseq object out of your data, and feeding that object into the *RCM()* function. More information on building the phyloseq object can be found [here](http://joey711.github.io/phyloseq/import-data.html).
+The *Zeller* object is a phyloseq object, which contains all the information of a microbiome experiment. The *RCM* package is tailor-made for phyloseq objects. We therefore strongly recommend building a phyloseq object out of your data, and feeding that object into the *RCM()* function. More information on building the phyloseq object can be found [here](http://joey711.github.io/phyloseq/import-data.html).
 
 Unconstrained RCM
 -----------------
@@ -60,7 +60,7 @@ Samples are represented by dots, taxa by arrows. Both represent vectors with the
 
 Valid interpretatations are the following:
 
--   Samples (endpoints of sample vectors, the red dots) close together depart from independence in a similar way
+-   Samples (endpoints of sample vectors, the red dots) close together have a similar taxon composition
 -   Taxa are more abundant than average in samples to which their arrows point, and less abundant when their arrows point away from the samples. For example Fusobacterium mortiferum is more abundant than average in samples on the left side of the plot, and more abundant in samples on the right side.
 -   The importance parameters *ψ* shown for every axis reflect the relative importance of the dimensions
 
