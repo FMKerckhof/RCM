@@ -2,12 +2,14 @@
 % Please edit documentation in R/F_getInt.R
 \name{getInt}
 \alias{getInt}
-\title{A function to integrate the spline of an vgam object between the boundaries of observed environmental scores.}
+\title{Integrate the spline of an vgam object}
 \usage{
-getInt(fitObj, sampleScore, stop.on.error = FALSE, ...)
+getInt(coef, spline, sampleScore, stop.on.error = FALSE, ...)
 }
 \arguments{
-\item{fitObj}{a fitted object, either gam or a vector of parameters}
+\item{coef}{A vector of coefficients}
+
+\item{spline}{The cubic smoothing spline}
 
 \item{sampleScore}{the observed environmental scores}
 
@@ -19,5 +21,5 @@ getInt(fitObj, sampleScore, stop.on.error = FALSE, ...)
 a scalar, the value of the integral
 }
 \description{
-A function to integrate the spline of an vgam object between the boundaries of observed environmental scores.
+Integrate the spline of an vgam object
 }

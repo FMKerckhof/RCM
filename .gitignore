@@ -5,5 +5,10 @@
 .Rproj
 inst/doc
 .html
+NEWS.Rmd
 /vignettes/RCMvignette_cache/*
-RCM.Rproj
+*.Rproj
+*.access^
+README_cache/
+vignettes/RCMvignette.R
+

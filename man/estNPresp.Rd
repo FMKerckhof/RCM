@@ -2,9 +2,9 @@
 % Please edit documentation in R/F_estNPresp.R
 \name{estNPresp}
 \alias{estNPresp}
-\title{A function to estimate the taxon-wise response functions non-parametrically, and return their fitted values}
+\title{Estimate the taxon-wise response functions non-parametrically}
 \usage{
-estNPresp(sampleScore, muMarg, X, psi, ncols, thetas, n, coefInit,
+estNPresp(sampleScore, muMarg, X, ncols, thetas, n, coefInit,
   coefInitOverall, dfSpline, vgamMaxit, degree, verbose, ...)
 }
 \arguments{
@@ -13,8 +13,6 @@ estNPresp(sampleScore, muMarg, X, psi, ncols, thetas, n, coefInit,
 \item{muMarg}{the offset matrix}
 
 \item{X}{the n-by-p data matrix}
-
-\item{psi}{the importance parameter}
 
 \item{ncols}{an integer, the number of columns of X}
 
@@ -36,17 +34,24 @@ estNPresp(sampleScore, muMarg, X, psi, ncols, thetas, n, coefInit,
 
 \item{...}{further arguments, passed on to the VGAM:::vgam() function
 
-The negative binomial likelihood is still maximized, but now the response function is a non-parametric one. To avoid a perfect fit and overly flexible functions, we enforce smoothness restrictions. In practice we use a generalized additive model (GAM), i.e. with splines.  The same fitting procedure is carried out ignoring species labels. We do not normalize the parameters related to the splines: the psis can be calculated afterwards.}
+The negative binomial likelihood is still maximized,
+ but now the response function is a non-parametric one.
+ To avoid a perfect fit and overly flexible functions,
+ we enforce smoothness restrictions. In practice we use a
+ generalized additive model (GAM), i.e. with splines.
+ The same fitting procedure is carried out ignoring species labels.
+  We do not normalize the parameters related to the splines:
+  the psis can be calculated afterwards.}
 }
 \value{
 A list with components
-\item{taxonWiseFitted}{A n-by-p matrix of fitted valuesof the response curves per taxon at the observed values of the environmental scores}
 \item{taxonCoef}{The fitted coefficients of the sample-wise response curves}
-\item{overallFitted}{The fitted values of all taxa combined}
-\item{taxonWiseFits}{A list of length p of normalized response curves of all the taxa. This may be useful to investigate the shape of the response function through plots.}
-\item{psi}{The importance parameter of the dimension}
-\item{taxonWise}{The taxonwise response function}
+\item{splinesList}{A list of all the B-spline objects}
+\item{rowMar}{The row matrix}
+\item{overall}{The overall fit ignoring taxon labels,
+ as a list of coefficients and a spline}
+\item{rowVecOverall}{The overall row vector, ignoring taxon labels}
 }
 \description{
-A function to estimate the taxon-wise response functions non-parametrically, and return their fitted values
+Estimate the taxon-wise response functions non-parametrically
 }
