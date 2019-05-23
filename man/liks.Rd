@@ -2,20 +2,30 @@
 % Please edit documentation in R/F_liks.R
 \name{liks}
 \alias{liks}
-\title{Calculate the log-likelihoods of the indepence and saturated models and all fitted submodels}
+\title{Calculate the log-likelihoods of all possible models}
 \usage{
 liks(rcm, Sum = TRUE)
 }
 \arguments{
 \item{rcm}{an object of the RCM class}
 
-\item{Sum}{a boolean, should log-likelihoods be summed?
-
-Dispersions are re-estimated for every dimension of the model.}
+\item{Sum}{a boolean, should log-likelihoods be summed?}
 }
 \value{
-If Sum is FALSE, a named array log-likelihoods of the independence model and all models with dimension 1 to k, including after filtering on confounders. Otherwise a table with log-likelihoods, deviance explained and cumulative deviance explained.
+If Sum is FALSE, a named array log-likelihoods
+of the independence model and all models with dimension 1 to k,
+including after filtering on confounders.
+Otherwise a table with log-likelihoods,
+deviance explained and cumulative deviance explained.
 }
 \description{
-Calculate the log-likelihoods of the indepence and saturated models and all fitted submodels
+Calculate the log-likelihoods of all possible models
+}
+\examples{
+data(Zeller)
+require(phyloseq)
+tmpPhy = prune_taxa(taxa_names(Zeller)[1:100],
+prune_samples(sample_names(Zeller)[1:50], Zeller))
+zellerRCM = RCM(tmpPhy, round = TRUE)
+liks(zellerRCM)
 }

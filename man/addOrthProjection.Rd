@@ -2,15 +2,16 @@
 % Please edit documentation in R/F_addOrthProjection.R
 \name{addOrthProjection}
 \alias{addOrthProjection}
-\title{This function adds orthogonal projections to a given plot based on coordinates or sample/taxon/variable names}
+\title{This function adds orthogonal projections to a given plot}
 \usage{
 addOrthProjection(RCMplot, sample = NULL, species = NULL,
-  variable = NULL, Dims = 1:2, addLabel = FALSE, labPos = NULL)
+  variable = NULL, Dims = c(1, 2), addLabel = FALSE, labPos = NULL)
 }
 \arguments{
 \item{RCMplot}{the RCMplot object}
 
-\item{sample, species, variable}{names or approximate coordinates of sample, species or variable}
+\item{sample, species, variable}{names or approximate coordinates of sample,
+species or variable}
 
 \item{Dims}{The dimensions of the solutions that have been plotted}
 
@@ -19,16 +20,17 @@ addOrthProjection(RCMplot, sample = NULL, species = NULL,
 \item{labPos}{the position of the label. Will be calculated if not provided}
 }
 \value{
-a modified ggplot object that contains the geom_segment object that draws the projection
+a modified ggplot object that contains the geom_segment object
+that draws the projection
 }
 \description{
-This function adds orthogonal projections to a given plot based on coordinates or sample/taxon/variable names
+This function adds orthogonal projections to a given plot
 }
 \examples{
 data(Zeller)
 require(phyloseq)
-tmpPhy = prune_taxa(taxa_names(Zeller)[1:100],
-prune_samples(sample_names(Zeller)[1:50], Zeller))
+tmpPhy = prune_taxa(taxa_names(Zeller)[seq_len(100)],
+prune_samples(sample_names(Zeller)[seq_len(50)], Zeller))
 zellerRCM = RCM(tmpPhy, k = 2, round = TRUE)
 zellerPlot = plot(zellerRCM, returnCoords = TRUE)
 addOrthProjection(zellerPlot, species = c(-0.35,1.1), sample = c(1,1.2))
