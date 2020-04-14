@@ -15,7 +15,7 @@ RCM_NB(X, k, rowWeights = "uniform", colWeights = "marginal",
   control.outer = list(trace = FALSE), control.optim = list(),
   envGradEst = "LR", dfSpline = 3, vgamMaxit = 100L,
   degree = switch(responseFun[1], nonparametric = 3, NULL), a = 1,
-  b = 1)
+  b = 1, allowMissingness = FALSE)
 }
 \arguments{
 \item{X}{a nxp data matrix}
@@ -103,12 +103,10 @@ the maximum number of iteration in the vgam() function}
 the degree of the polynomial fit if the spline fit fails}
 
 \item{a, b}{exponents for the row and column weights of the singular value
- decomposition used to calculate starting values. Can be played around with
- in case of numerical troubles
+decomposition used to calculate starting values. Can be played around with
+in case of numerical troubles}
 
-#'@seealso \code{\link{RCM}}
-
-Not intended to be called directly but only through the RCM() function}
+\item{allowMissingness}{See RCM()}
 }
 \value{
 A list with elements
@@ -147,6 +145,7 @@ A list with elements
 \item{confParams}{ the parameters used to filter out the confounders}
 \item{nonParamRespFun}{A list of the non parametric response functions}
 \item{degree}{The degree of the alternative parametric fit}
+\item{NApresent}{A boolean, were NA values present?}
 }
 \description{
 Fit the RC(M) model with the negative binomial distribution.
@@ -154,7 +153,8 @@ Fit the RC(M) model with the negative binomial distribution.
 \details{
 Includes fitting of the independence model, filtering out the
 effect of confounders and fitting the RC(M) components in a constrained
- or an unconstrained way for any dimension k.
+ or an unconstrained way for any dimension k. Not intended to be called
+ directly but only through the RCM() function
 }
 \note{
 Plotting is not supported for quadratic response functions
@@ -168,4 +168,7 @@ mat = as(otu_table(tmpPhy), "matrix")
 mat = mat[rowSums(mat)>0, colSums(mat)>0]
 zellerRCM = RCM_NB(mat, k = 2)
 #Needs to be called directly onto a matrix
+}
+\seealso{
+\code{\link{RCM}}
 }

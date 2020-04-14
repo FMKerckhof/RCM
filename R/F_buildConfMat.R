@@ -36,6 +36,8 @@ buildConfMat.data.frame = function(confounders, n) {
     if (anyNA(confounders)) {
         stop("Confounders contain missing values!\n")
     }
+    #Check alias structure
+    checkAlias(confounders, names(confounders))
     # No intercept or continuous variables for preliminary
     # trimming
     confModelMatTrim = model.matrix(object = as.formula(paste("~",
@@ -60,7 +62,8 @@ buildConfMat.character = function(confounders, physeq) {
         stop("Providing confounders through variable names is only allowed
         if phyloseq object is provided! \n")
     }
-    confounders = data.frame(get_variable(physeq, confounders))
+    confounders = as(sample_data(physeq),"data.frame")[,make.names(confounders),
+                                           drop = FALSE]
     # The dataframe with the confounders
     buildConfMat(confounders, n = nsamples(physeq))
 }

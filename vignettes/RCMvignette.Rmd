@@ -22,27 +22,31 @@ of the ordination model, plotting it and performing diagnostic checks.
 
 # Publication
 
-The underlying method of the RCM package is described in detail in the following article: ["A unified framework for unconstrained and constrained ordination of microbiome read count data"](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0205474).
+The underlying method of the RCM package is described in detail in the following article: 
+["A unified framework for unconstrained and constrained ordination of microbiome read count data"](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0205474).
 
 # Installation
 
 The package can be installed and loaded using the following commands:
 
-```{r loadRCMpackage}
-# library(BiocManager)
-# BiocManager::install("RCM")
-library(RCM)
-cat("RCM package version", as.character(packageVersion("RCM")), "\n")
-```
-
 ```{r load-packages, warning=FALSE, message=FALSE, echo=FALSE}
 knitr::opts_chunk$set(cache = TRUE, autodep = TRUE,
-                      warning=FALSE, message=FALSE, echo=TRUE, eval=TRUE, 
-                      tidy = TRUE, fig.width = 9, fig.height = 6, purl=TRUE, 
+                      warning = FALSE, message = FALSE, echo = TRUE, eval = TRUE, 
+                      tidy = TRUE, fig.width = 9, fig.height = 6, purl = TRUE, 
                       fig.show = "hold", cache.lazy = FALSE)
 palStore = palette()
 #Load all fits, to avoid refitting every time rebuilding the vignette
 load(system.file("fits", "zellerFits.RData", package = "RCM"))
+```
+
+```{r install, eval = FALSE}
+library(BiocManager)
+install("RCM", update = FALSE)
+```
+
+```{r loadRCMpackage}
+suppressPackageStartupMessages(library(RCM))
+cat("RCM package version", as.character(packageVersion("RCM")), "\n")
 ```
 
 ## Dataset
@@ -569,6 +573,35 @@ On the other hand, as we argue in the manuscript, the inertia is not a good
 
 ```{r plotUnconstrainedRCMinertia, fig.height = 8, fig.width = 9}
 plot(ZellerRCM2cond, plotPsi = "inertia")
+```
+
+## Advanced plotting
+
+### Extracting coodinates
+
+First of all it is important to note that the plotting coordinates can easily be extracted. This may be useful when making plots with third party software.
+
+```{r extractCoord}
+zellerCoords = extractCoord(ZellerRCM2)
+str(zellerCoords)
+```
+
+Also, this can be used to obtain a list of taxa contributing to the separation of the samples, sorted from most to least important.
+
+```{r taxaStrongestSignal}
+taxaSignals = rowSums(zellerCoords$species[, c("end1","end2")]^2)
+sortedTaxa = taxa_names(ZellerRCM2$physeq)[order(taxaSignals, decreasing = TRUE)]
+sortedTaxa[1:10]
+```
+
+These most important taxa are the ones that are plotted by default by the $plot.RCM()$ function.
+
+### Non-squared plots
+
+The $RCM$ package provides the option to make plots with non squared axis. This may lead to better proportioned plots, but as it also misrepresents the ordination __WE DO NOT ADVOCATE NON-SQUARED PLOTS__!
+
+```{r NonsquaredPlots}
+plot(ZellerRCM2, axesFixed = FALSE)
 ```
 
 # Session info

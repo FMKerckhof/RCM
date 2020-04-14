@@ -10,18 +10,25 @@ The underlying method of the RCM package is described in detail in the following
 
 ## Install and load packages
 
-This repo contains R-code to fit and plot the RC(M)-models augmented with the negative binomial. The basic usage is demonstrated here, for more advanced examples see the [RCM manual](http://users.ugent.be/~shawinke/RCMmanual) and the help pages of _RCM()_, *RCM_NB()*, and _plot.RCM()_ functions.
+This repo contains R-code to fit and plot the RC(M)-models augmented with the negative binomial. The basic usage is demonstrated here, for more advanced examples see the [RCM vignette](https://bioconductor.org/packages/release/bioc/vignettes/RCM/inst/doc/RCMvignette.html) and the help pages of _RCM()_, *RCM_NB()*, and _plot.RCM()_ functions.
 
-The package can be installed and loaded using the following commands:
+The package can be installed from BioConductor and loaded using the following commands:
+
+```{r installRCMpackageBioConductor, eval = FALSE}
+library(BiocManager)
+install("RCM", update = FALSE)
+```
+
+```{r loadRCMpackage}
+suppressPackageStartupMessages(library(RCM))
+cat("RCM package version", as.character(packageVersion("RCM")), "\n")
+```
+
+Alternatively, the latest version can be installed directly from this GitHub repo as follows:
 
 ```{r installRCMpackage, eval = FALSE}
 library(devtools)
 install_github("CenterForStatistics-UGent/RCM")
-```
-
-```{r loadRCMpackage}
-library(RCM)
-cat("RCM package version", as.character(packageVersion("RCM")), "\n")
 ```
 
 
@@ -55,10 +62,11 @@ ZellerRCM2 = RCM(Zeller)
 ```{r fitHidden, echo = FALSE}
 if(!file.exists(file = "./inst/fits/zellerFits.RData")){
 ZellerRCM2 = RCM(Zeller)
+ZellerRCM3 = RCM(Zeller, k = 3, round = TRUE)
 ZellerRCM2cond = RCM(Zeller, confounders = "Country")
 ZellerRCM2constr = RCM(Zeller, k = 2, round = TRUE, covariates = c("Age","Gender","BMI","Country", "Diagnosis"), responseFun = "linear")
 ZellerRCM2constrNonParam = RCM(Zeller, round = TRUE, k = 2, covariates = c("Age","Gender","BMI","Country", "Diagnosis"), responseFun = "nonparametric")
-save(ZellerRCM2, ZellerRCM2cond, ZellerRCM2constr, ZellerRCM2constrNonParam, file = "./inst/fits/zellerFits.RData")
+save(ZellerRCM2, ZellerRCM3, ZellerRCM2cond, ZellerRCM2constr, ZellerRCM2constrNonParam, file = "./inst/fits/zellerFits.RData")
 } else {load(file = "./inst/fits/zellerFits.RData")}
 ```
 
@@ -166,4 +174,6 @@ plotRespFun(ZellerRCM2constrNonParam)
 
 The first dimension is shown by default, the environmental scores of the samples are shown below as ticks, the y-axis shows the response functions of the 8 most reacting species, whereby the x-axis represents the independence model. This graph demonstrates the power of non-parametric response function modelling to unravel differences in species niches.
 
-This document covers only the more basic use of the RCM plotting functions. Discover more advanced features in the [RCM manual](http://users.ugent.be/~shawinke/RCMmanual) or in the help pages of the functions used.
+This document covers only the more basic use of the RCM plotting functions. Discover more advanced features in the [RCM vignette](https://bioconductor.org/packages/release/bioc/vignettes/RCM/inst/doc/RCMvignette.html) or in the help pages of the functions used.
+
+
